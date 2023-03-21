@@ -1,0 +1,7 @@
+name,type,id,arg0,arg1,retval0,retval1
+elvm_ext_24_to_64,usr,0,s0_24,,s0_64,
+elvm_trim_64_to_24,usr,1,s0_64,,s0_24,
+elvm_open_register,usr,2,s0_8,s0_24n,s1_24n,
+elvm_close_register,usr,3,s0_8,s1_24n,s0_24n,
+elvm_read_register,usr,4,s0_8,,s0_24,
+elvm_write_register,usr,5,s0_8,s0_24,,

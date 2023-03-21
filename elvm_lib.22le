@@ -1,0 +1,145 @@
+;\autofunc usr
+;\@elvm_ext_24_to_64 s0_24 -> s0_64
+startfunc
+    \pushl8 0
+    \pushl8 0
+    \pushl8 0
+    \pushl8 0
+    \pushl8 0
+    @{elvm_ext_24_to_64}
+endfunc
+
+;\autofunc usr
+;\@elvm_trim_64_to_24 s0_64 -> s0_24
+startfunc
+    pop8s0
+    pop8s0
+    pop8s0
+    pop8s0
+    pop8s0
+    @{elvm_trim_64_to_24}
+endfunc
+
+;\autofunc usr
+;\@elvm_open_register s0_8, s0_24n -> s1_24n
+startfunc
+    #clr0
+    pop8s0
+
+    #xchg 0,2
+    push8s2
+    #xchg 0,2
+
+    \autolabel loop_start
+    #xchg 0,2
+    pop8s2
+    #xchg 1,2
+    #safeifz loop_end
+        #xchg 1,2
+        push8s2
+
+        pop8s0
+        #xchg 0,1
+        push8s1
+
+        pop8s0
+        #xchg 0,1
+        push8s1
+
+        pop8s0
+        #xchg 0,1
+        push8s1
+    #safegoto loop_start
+    \autolabel loop_end
+    @{elvm_open_register}
+endfunc
+
+;\autofunc usr
+;\@elvm_close_register s0_8, s1_24n -> s0_24n
+startfunc
+    #clr0
+    pop8s0
+
+    #xchg 0,2
+    push8s2
+    #xchg 0,2
+
+    \autolabel loop_start
+    #xchg 0,2
+    pop8s2
+    #xchg 1,2
+    #safeifz loop_end
+        #xchg 1,2
+        push8s2
+
+        pop8s1
+        #xchg 0,1
+        push8s0
+
+        pop8s1
+        #xchg 0,1
+        push8s0
+
+        pop8s1
+        #xchg 0,1
+        push8s0
+    #safegoto loop_start
+    \autolabel loop_end
+    @{elvm_close_register}
+endfunc
+
+;\autofunc usr
+;\@elvm_read_register s0_8 -> s0_24
+startfunc
+    pop8s0
+    push8s0
+    #xchg 0,2
+    push8s2
+    #safecall elvm_open_register
+    #safecall elvm_ext_24_to_64
+    #safecall dup64s0
+    pop8s2
+    #xchg 1,2
+    push8s1
+    #safecall pop64s0
+    #xchg 0,2
+    #safecall push64s2
+    #safecall elvm_trim_64_to_24
+    pop8s1
+    #xchg 0,1
+    push8s0
+    #safecall elvm_close_register
+    #safecall pop64s2
+    #safecall push64r2tos0
+    #safecall elvm_trim_64_to_24
+    @{elvm_read_register}
+endfunc
+
+;\autofunc usr
+;\@elvm_write_register s0_8, s0_24 -> none
+startfunc
+    pop8s0
+    #xchg 0,1
+    push8s1
+    #xchg 1,2
+    push8s2
+    #safecall elvm_ext_24_to_64
+    #safecall pop64s0
+    #xchg 0,2
+    #safecall push64s2
+    pop8s1
+    #xchg 0,1
+    push8s1
+    #safecall elvm_open_register
+    pop8s0
+    pop8s0
+    pop8s0
+    #safecall pop64s2
+    #safecall push64r2tos0
+    #safecall elvm_trim_64_to_24
+    pop8s2
+    #xchg 0,2
+    push8s0
+    #safecall elvm_close_register
+    @{elvm_write_register}
+endfunc

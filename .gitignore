@@ -1,0 +1,11 @@
+*
+!Makefile
+!*/
+!*.*
+*.22l
+*.csv
+!*.ext.csv
+*.cpp
+*.nyu
+*.txt
+*.22libe
