@@ -34,7 +34,7 @@ startfunc
     #xchg 0,2
     pop8s2
     #xchg 1,2
-    #safeifz loop_end
+    #ifz loop_end
         #xchg 1,2
         push8s2
 
@@ -49,7 +49,7 @@ startfunc
         pop8s0
         #xchg 0,1
         push8s1
-    #safegoto loop_start
+    #goto loop_start
     \autolabel loop_end
     @{elvm_open_register}
 endfunc
@@ -68,7 +68,7 @@ startfunc
     #xchg 0,2
     pop8s2
     #xchg 1,2
-    #safeifz loop_end
+    #ifz loop_end
         #xchg 1,2
         push8s2
 
@@ -83,7 +83,7 @@ startfunc
         pop8s1
         #xchg 0,1
         push8s0
-    #safegoto loop_start
+    #goto loop_start
     \autolabel loop_end
     @{elvm_close_register}
 endfunc
@@ -95,23 +95,23 @@ startfunc
     push8s0
     #xchg 0,2
     push8s2
-    #safecall elvm_open_register
-    #safecall elvm_ext_24_to_64
-    #safecall dup64s0
+    \call elvm_open_register
+    \call elvm_ext_24_to_64
+    \call dup64s0
     pop8s2
     #xchg 1,2
     push8s1
-    #safecall pop64s0
+    \call pop64s0
     #xchg 0,2
-    #safecall push64s2
-    #safecall elvm_trim_64_to_24
+    \call push64s2
+    \call elvm_trim_64_to_24
     pop8s1
     #xchg 0,1
     push8s0
-    #safecall elvm_close_register
-    #safecall pop64s2
-    #safecall push64r2tos0
-    #safecall elvm_trim_64_to_24
+    \call elvm_close_register
+    \call pop64s2
+    \call push64r2tos0
+    \call elvm_trim_64_to_24
     @{elvm_read_register}
 endfunc
 
@@ -123,23 +123,172 @@ startfunc
     push8s1
     #xchg 1,2
     push8s2
-    #safecall elvm_ext_24_to_64
-    #safecall pop64s0
+    \call elvm_ext_24_to_64
+    \call pop64s0
     #xchg 0,2
-    #safecall push64s2
+    \call push64s2
     pop8s1
     #xchg 0,1
     push8s1
-    #safecall elvm_open_register
+    \call elvm_open_register
     pop8s0
     pop8s0
     pop8s0
-    #safecall pop64s2
-    #safecall push64r2tos0
-    #safecall elvm_trim_64_to_24
+    \call pop64s2
+    \call push64r2tos0
+    \call elvm_trim_64_to_24
     pop8s2
     #xchg 0,2
     push8s0
-    #safecall elvm_close_register
+    \call elvm_close_register
     @{elvm_write_register}
+endfunc
+
+;\autofunc usr
+;\@elvm_access_memory s0_24, s1_8n -> s2_8n
+startfunc
+    \call elvm_ext_24_to_64
+    \call dup64s0
+
+    \call pop64s0
+    #xchg 0,1
+    \call push64s1
+
+    \call elvm_trim_64_to_24
+    \call elvm_convert_to_actual_address
+    \call elvm_ext_24_to_64
+    \call pop64s0
+    #xchg 0,2
+    \call push64s2
+
+    \pushl8 6
+    \call elvm_read_register
+    \call elvm_convert_to_actual_address
+    \call elvm_ext_24_to_64
+
+    \call pop64s2
+    \call push64r2tos0
+    \call sub
+
+    \call pop64s0
+    #xchg 0,2
+    \call push64s2
+
+    \call pop64s1
+    #xchg 1,2
+    \call push64r2tos0
+    \pushl8 6
+    \call elvm_write_register
+
+    \call pop64s2
+    \call push64r2tos0
+    \call pop64s0
+    #xchg 0,1
+    #ifz end
+    #xchg 1,2
+    \call push64r2tos0
+    \call dup64s0
+    \call isp
+    #clr0
+    pop8s0
+    #xchg 0,1
+    #ifz negative
+        ;positive
+        #defmacro _elvm_positive_loop_content
+            pop8s2
+            #xchg 1,2
+            push8s1
+        #endmacro
+        \pushl8 0 ;スタック上の値を8bit右シフトするのと等価
+        \autolabel positive_chunked_loop_start
+            \call pop64s0
+            #xchg 0,1
+            #ifz positive_chunked_loop_end
+            #xchg 1,2
+            \call push64r2tos0
+
+            #repeat_macro_256 _elvm_positive_loop_content
+
+            \pushl64 -1
+            \call add
+            #goto positive_chunked_loop_start
+        \autolabel positive_chunked_loop_end
+
+        \call ext8to64s0
+
+        \autolabel positive_remainder_loop_start
+            \call pop64s0
+            #xchg 0,1
+            #ifz positive_remainder_loop_end
+            #xchg 1,2
+            \call push64r2tos0
+
+            _elvm_positive_loop_content
+
+            \pushl64 -1
+            \call add
+            #goto positive_remainder_loop_start
+        \autolabel positive_remainder_loop_end
+        #goto end
+    \autolabel negative
+        #defmacro _elvm_negative_loop_content
+            pop8s1
+            #xchg 1,2
+            push8s2
+        #endmacro
+        \call to_positive
+        \pushl8 0 ;スタック上の値を8bit右シフトするのと等価
+        \autolabel negative_chunked_loop_start
+            \call pop64s0
+            #xchg 0,1
+            #ifz negative_chunked_loop_end
+            #xchg 1,2
+            \call push64r2tos0
+
+            #repeat_macro_256 _elvm_negative_loop_content
+
+            \pushl64 -1
+            \call add
+            #goto negative_chunked_loop_start
+        \autolabel negative_chunked_loop_end
+
+        \call ext8to64s0
+
+        \autolabel negative_remainder_loop_start
+            \call pop64s0
+            #xchg 0,1
+            #ifz negative_remainder_loop_end
+            #xchg 1,2
+            \call push64r2tos0
+
+            _elvm_negative_loop_content
+
+            \pushl64 -1
+            \call add
+            #goto negative_remainder_loop_start
+        \autolabel negative_remainder_loop_end
+    \autolabel end
+    @{elvm_access_memory}
+endfunc
+
+;\autofunc usr
+;\@elvm_convert_to_actual_address s0_24 -> s0_24
+startfunc
+    \call elvm_ext_24_to_64
+    \call dup64s0
+    \pushl64 0b1000_0000_0000_0000_0000_0000
+    \call and
+    \call pop64s0
+    #xchg 0,1
+    #ifz smaller_half
+        ;larger_half
+        #autopushl64 2**23+2**24-1
+        \call sub
+        #goto endif
+    \autolabel smaller_half
+        #autopushl64 2**23-1
+        \call sub
+    \autolabel endif
+    \call elvm_trim_64_to_24
+    @{elvm_convert_to_actual_address}
 endfunc
