@@ -1,4 +1,11 @@
-;\autofunc usr
+#defmacro elvm_pushl24 arg
+    \autoliteral #{arg}
+    pushl8
+    pushl8
+    pushl8
+#endmacro
+
+;\autofunc
 ;\@elvm_ext_24_to_64 s0_24 -> s0_64
 startfunc
     \pushl8 0
@@ -9,7 +16,7 @@ startfunc
     @{elvm_ext_24_to_64}
 endfunc
 
-;\autofunc usr
+;\autofunc
 ;\@elvm_trim_64_to_24 s0_64 -> s0_24
 startfunc
     pop8s0
@@ -20,7 +27,7 @@ startfunc
     @{elvm_trim_64_to_24}
 endfunc
 
-;\autofunc usr
+;\autofunc
 ;\@elvm_open_register s0_8, s0_24n -> s1_24n
 startfunc
     #clr0
@@ -54,7 +61,7 @@ startfunc
     @{elvm_open_register}
 endfunc
 
-;\autofunc usr
+;\autofunc
 ;\@elvm_close_register s0_8, s1_24n -> s0_24n
 startfunc
     #clr0
@@ -88,7 +95,7 @@ startfunc
     @{elvm_close_register}
 endfunc
 
-;\autofunc usr
+;\autofunc
 ;\@elvm_read_register s0_8 -> s0_24
 startfunc
     pop8s0
@@ -115,7 +122,7 @@ startfunc
     @{elvm_read_register}
 endfunc
 
-;\autofunc usr
+;\autofunc
 ;\@elvm_write_register s0_8, s0_24 -> none
 startfunc
     pop8s0
@@ -144,7 +151,13 @@ startfunc
     @{elvm_write_register}
 endfunc
 
-;\autofunc usr
+#defmacro elvm_repeat_macro_3 macro,...
+    ##{macro} #{__VA_ARGS__}
+    ##{macro} #{__VA_ARGS__}
+    ##{macro} #{__VA_ARGS__}
+#endmacro
+
+;\autofunc
 ;\@elvm_access_memory s0_24, s1_8n -> s2_8n
 startfunc
     \call elvm_ext_24_to_64
@@ -177,6 +190,7 @@ startfunc
     \call pop64s1
     #xchg 1,2
     \call push64r2tos0
+    \call elvm_trim_64_to_24
     \pushl8 6
     \call elvm_write_register
 
@@ -207,7 +221,7 @@ startfunc
             #xchg 1,2
             \call push64r2tos0
 
-            #repeat_macro_256 _elvm_positive_loop_content
+            #repeat_macro_256 elvm_repeat_macro_3,_elvm_positive_loop_content
 
             \pushl64 -1
             \call add
@@ -223,7 +237,7 @@ startfunc
             #xchg 1,2
             \call push64r2tos0
 
-            _elvm_positive_loop_content
+            #elvm_repeat_macro_3 _elvm_positive_loop_content
 
             \pushl64 -1
             \call add
@@ -245,7 +259,7 @@ startfunc
             #xchg 1,2
             \call push64r2tos0
 
-            #repeat_macro_256 _elvm_negative_loop_content
+            #repeat_macro_256 elvm_repeat_macro_3,_elvm_negative_loop_content
 
             \pushl64 -1
             \call add
@@ -261,7 +275,7 @@ startfunc
             #xchg 1,2
             \call push64r2tos0
 
-            _elvm_negative_loop_content
+            #elvm_repeat_macro_3 _elvm_negative_loop_content
 
             \pushl64 -1
             \call add
@@ -271,7 +285,7 @@ startfunc
     @{elvm_access_memory}
 endfunc
 
-;\autofunc usr
+;\autofunc
 ;\@elvm_convert_to_actual_address s0_24 -> s0_24
 startfunc
     \call elvm_ext_24_to_64
@@ -291,4 +305,184 @@ startfunc
     \autolabel endif
     \call elvm_trim_64_to_24
     @{elvm_convert_to_actual_address}
+endfunc
+
+;\autofunc
+;\@elvm_pop24s0 s0_24 -> r0_24
+startfunc
+    ;save r1_8 into s1
+    push8s1
+
+    \pushl8 8
+    #xchg 0,1
+    pop8s0
+    #xchg 0,1
+
+
+    pop8s0
+    lshift
+    #xchg 0,2
+
+    pop8s0
+
+    ;restore r1_8 from s1
+    pop8s1
+    @{elvm_pop24s0}
+endfunc
+
+;\autofunc
+;\@elvm_pop24s1 s1_24 -> r1_24
+startfunc
+    \pushl8 8
+    pop8s0
+
+    pop8s1
+    #xchg 0,1
+    lshift
+    #xchg 1,2
+
+    pop8s1
+    #xchg 0,1
+    #xchg 1,2
+    lshift
+    #xchg 1,2
+
+    pop8s1
+    @{elvm_pop24s1}
+endfunc
+
+;\autofunc
+;\@elvm_pop24s2 s2_24 -> r2_24
+startfunc
+    ;load 8 to r1_8
+    \pushl8 8
+    pop8s0
+    #xchg 0,1
+
+    pop8s2
+    #xchg 0,2
+    lshift
+
+    pop8s2
+    #xchg 0,2
+    lshift
+
+    pop8s2
+    @{elvm_pop24s2}
+endfunc
+
+;\autofunc
+;\@elvm_push24r2tos0 r2_24 -> s0_24
+startfunc
+    ;save r1_8 into s1
+    push8s1
+
+    \pushl8 -8
+    #xchg 0,1
+    pop8s0
+    #xchg 0,1
+
+    #xchg 0,2
+
+    push8s0
+    lshift
+    #xchg 0,2
+
+    push8s0
+    lshift
+    #xchg 0,2
+
+    push8s0
+
+    ;restore r1_8 from s1
+    pop8s1
+
+    @{elvm_push24r2tos0}
+endfunc
+
+;\autofunc
+;\@elvm_push24s1 r1_24 -> s1_24
+startfunc
+    push8s1
+    \pushl8 -8
+    pop8s0
+    #xchg 0,1
+
+    lshift
+    #xchg 1,2
+    push8s1
+    #xchg 0,1
+    #xchg 1,2
+
+    lshift
+    #xchg 1,2
+    push8s1
+    #xchg 0,1
+    #xchg 1,2
+    @{elvm_push24s1}
+endfunc
+
+;\autofunc
+;\@elvm_push24s2 r2_24 -> s2_24
+startfunc
+    push8s2
+    \pushl8 -8
+    pop8s0
+    #xchg 0,1
+    #xchg 0,2
+
+    lshift
+    push8s2
+    #xchg 0,2
+
+    lshift
+    push8s2
+    #xchg 0,2
+    @{elvm_push24s2}
+endfunc
+
+;\autofunc
+;\@elvm_dup24s0 s0_24 -> s0_24, s0_24
+startfunc
+    #elvm_repeat_macro_3 _dup64s0_duplicate_loop_content
+    #elvm_repeat_macro_3 _dup64s0_restore_loop_content 1
+    #elvm_repeat_macro_3 _dup64s0_restore_loop_content 2
+    @{elvm_dup24s0}
+endfunc
+
+;\autofunc
+;\@elvm_read_stdin none -> s0_24
+startfunc
+    read
+    #xchg 0,2
+    \call elvm_push24r2tos0
+    \call elvm_dup24s0
+    \call elvm_ext_24_to_64
+    \pushl64 -(-1)
+    \call add
+    \call pop64s0
+    #xchg 0,1
+    #ifz eof
+        #goto endif
+    \autolabel eof
+        \call elvm_pop24s0
+        #elvm_pushl24 0
+    \autolabel endif
+    @{elvm_read_stdin}
+endfunc
+
+;\autofunc
+;\@elvm_ext_8_to_24 s0_8 -> s0_24
+startfunc
+    \pushl8 0
+    \pushl8 0
+    @{elvm_ext_8_to_24}
+endfunc
+
+;\autofunc
+;\@elvm_trim_24_to_8 s0_24 -> s0_8
+startfunc
+    pop8s0
+    pop8s0
+    @{elvm_trim_24_to_8}
 endfunc
