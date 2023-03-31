@@ -458,7 +458,7 @@ startfunc
     \call elvm_push24r2tos0
     \call elvm_dup24s0
     \call elvm_ext_24_to_64
-    \pushl64 -(-1)
+    #autopushl64 -(-1)
     \call add
     \call pop64s0
     #xchg 0,1
